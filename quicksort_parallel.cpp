@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <omp.h>
 #include <chrono>
 #include <random>
 using namespace std;
@@ -52,33 +53,40 @@ int partition(vector<int>& arr, int start, int end)
     return pivotIndex;
 }
  
-void quickSort(vector<int>& arr, int start, int end)
+void quickSort(vector<int>& arr, int start, int end, int size)
 {
- 
     if (start >= end)
         return;
  
     int p = partition(arr, start, end);
-    quickSort(arr, start, p - 1);
-    quickSort(arr, p + 1, end);
+    if(end - start > size/4){
+        #pragma omp parallel sections num_threads(4)
+        {
+            #pragma omp section
+            quickSort(arr, start, p - 1, size);
+            #pragma omp section
+            quickSort(arr, p + 1, end, size);
+        }
+    }
+    else{
+        quickSort(arr, start, p - 1, size);
+        quickSort(arr, p + 1, end, size);
+    }
+    
 }
 
 int main() {
     int arr_size = 10000000;
     int min_val = 1;
     int max_val = 10000000; 
-
     vector<int> arr = generateRandomArray(arr_size, min_val, max_val);
-
     auto start = chrono::steady_clock::now();
 
-    quickSort(arr, 0, arr_size - 1);
-
+    quickSort(arr, 0, arr_size - 1, arr_size);
+    
     auto end = chrono::steady_clock::now();
 
-    // Calculate the elapsed time
     chrono::duration<double> elapsed_seconds = end - start;
     cout << "\nTime taken: " << elapsed_seconds.count() << " seconds" << endl;
-
     return 0;
 }
